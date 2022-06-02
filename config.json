@@ -1,0 +1,32 @@
+[
+    {
+        "enabled": true,
+        "input_channel": "9",
+        "input_device": "Elektron Digitakt",
+        "is_return": true,
+        "output_channel": "1",
+        "output_device": "Moog Sub 37",
+        "return_input_channel": "All",
+        "return_output_channel": "8"
+    },
+    {
+        "enabled": true,
+        "input_channel": "10",
+        "input_device": "Elektron Digitakt",
+        "is_return": false,
+        "output_channel": "1",
+        "output_device": "minilogue xd SOUND",
+        "return_input_channel": "All",
+        "return_output_channel": "Same"
+    },
+    {
+        "enabled": true,
+        "input_channel": "All",
+        "input_device": "minilogue xd KBD/KNOB",
+        "is_return": false,
+        "output_channel": "8",
+        "output_device": "Elektron Digitakt",
+        "return_input_channel": "All",
+        "return_output_channel": "Same"
+    }
+]
