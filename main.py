@@ -1,7 +1,12 @@
+import sys
+import time
 from patch import PatchBay
 import multiprocessing
 from multiprocessing import Queue
-import time
+
+# TODO
+# - Disable return checkbox if one of the device doesn't have an exact i/o match
+# - Refresh device list when one is (dis)connected
 
 queue = Queue()
 patchbay = PatchBay(show_devices=False)
@@ -10,7 +15,7 @@ output_devices = [out_port for out_port in patchbay.out_ports]
 
 def gui_process(*args):
     import gui
-    gui.start(*args)
+    gui.init(*args)
 
 def get_patches_by_id(id):
     return_patch = None
@@ -52,7 +57,8 @@ def handle_queue():
             value['input_device'],
             value['output_device'],
             value['input_channel'],
-            value['output_channel']
+            value['output_channel'],
+            value['input_device_sync']
         )
         patchbay.create_patch(
             id + 'r',
@@ -60,7 +66,8 @@ def handle_queue():
             value['output_device'],
             value['input_device'],
             value['return_input_channel'],
-            value['return_output_channel']
+            value['return_output_channel'],
+            value['output_device_sync']
         )
     elif patch:
         if event == 'input_device':
@@ -75,15 +82,19 @@ def handle_queue():
             patch.output_channel = value
         elif event == 'enabled':
             patch.enabled = value
-        elif event == 'remove_patch':
-            patchbay.remove_patch(patch)
-            patchbay.remove_patch(return_patch)
         elif event == 'return_input_channel':
             return_patch.input_channel = value
         elif event == 'return_output_channel':
             return_patch.output_channel = value
         elif event == 'is_return':
             return_patch.enabled = value
+        elif event == 'input_device_sync':
+            patch.set_sync(value)
+        elif event == 'output_device_sync':
+            return_patch.set_sync(value)
+        elif event == 'remove_patch':
+            patchbay.remove_patch(patch)
+            patchbay.remove_patch(return_patch)
 
 if __name__ == '__main__':
     gp = multiprocessing.Process(target=gui_process, args=(input_devices, output_devices, queue))
@@ -93,8 +104,11 @@ if __name__ == '__main__':
         while 1:
             handle_queue()
             patchbay.parse()
+            if not gp.is_alive():
+                gp.join()
+                sys.exit(0)
     except KeyboardInterrupt:
-        pass
+        sys.exit(0)
     finally:
         print("Closing ports...")
         patchbay.stop()

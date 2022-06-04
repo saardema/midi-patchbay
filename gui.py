@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import Canvas
 from tkinter import ttk
-import json
+import json, time, random
 
 app = tk.Tk()
 app.title('MIDI Patchbay')
-# app.geometry('800x600')
 
 row = 0
 gui_patches = []
@@ -18,21 +17,21 @@ class GuiPatch():
     channel_list = [i+1 for i in range(16)]
     
     def __init__(self, id, values=None):
+        rnd = str(random.random())[2:]
         self.id = id
         self.vars = {}
-        self.vars['enabled'] = tk.BooleanVar(name='enabled_' + str(id))
-        self.vars['input_device'] = tk.StringVar(name='input_device_' + str(id))
-        self.vars['input_channel'] = tk.StringVar(name='input_channel_' + str(id))
-        self.vars['output_device'] = tk.StringVar(name='output_device_' + str(id))
-        self.vars['output_channel'] = tk.StringVar(name='output_channel_' + str(id))
-        self.vars['is_return'] = tk.BooleanVar(name='is_return_' + str(id))
-        self.vars['return_output_channel'] = tk.StringVar(name='return_output_channel_' + str(id))
-        self.vars['return_input_channel'] = tk.StringVar(name='return_input_channel_' + str(id))
+        self.vars['enabled'] = tk.BooleanVar(name='enabled_' + rnd)
+        self.vars['input_device'] = tk.StringVar(name='input_device_' + rnd)
+        self.vars['input_device_sync'] = tk.BooleanVar(name='input_device_sync_' + rnd)
+        self.vars['input_channel'] = tk.StringVar(name='input_channel_' + rnd)
+        self.vars['output_device'] = tk.StringVar(name='output_device_' + rnd)
+        self.vars['output_channel'] = tk.StringVar(name='output_channel_' + rnd)
+        self.vars['output_device_sync'] = tk.BooleanVar(name='output_device_sync_' + rnd)
+        self.vars['is_return'] = tk.BooleanVar(name='is_return_' + rnd)
+        self.vars['return_output_channel'] = tk.StringVar(name='return_output_channel_' + rnd)
+        self.vars['return_input_channel'] = tk.StringVar(name='return_input_channel_' + rnd)
         self.__main_elements = []
         self.__return_elements = []
-
-        self.create_elements()
-        self.toggle_return()
 
         if values:
             for key, value in values.items():
@@ -40,21 +39,27 @@ class GuiPatch():
         else:
             self.vars['enabled'].set(True)
             self.vars['input_device'].set(input_devices[0])
+            self.vars['input_device_sync'].set(False)
             self.vars['input_channel'].set('All')
             self.vars['output_device'].set(output_devices[0])
             self.vars['output_channel'].set('Same')
+            self.vars['output_device_sync'].set(False)
+            self.vars['is_return'].set(False)
             self.vars['return_output_channel'].set('Same')
             self.vars['return_input_channel'].set('All')
+        
+        self.create_elements()
+        self.toggle_return()
 
-        # for var in self.vars.values():
-            # var.trace = var.trace_add('write', self.handle_input)
+        for var in self.vars.values():
+            var.trace = var.trace_add('write', self.handle_input)
 
-    def handle_input(self, a, b, c):
-        for name, var in self.vars.items():
-            if a == var._name:
+    def handle_input(self, name, b, mode):
+        for key, var in self.vars.items():
+            if name == var._name:
                 value = var.get()
                 if value != '':
-                    queue.put((self.id, name, value))
+                    queue.put((self.id, key, value))
                 break
 
     def create_elements(self):
@@ -102,12 +107,17 @@ class GuiPatch():
         self.__main_elements.append(output_device_combo)
 
         column += 1
+        input_sync_check = tk.Checkbutton(app, width=5, var=self.vars['input_device_sync'])
+        input_sync_check.grid(column=column, row=row, **grid_args)
+        self.__main_elements.append(input_sync_check)
+
+        column += 1
         returnCheck = tk.Checkbutton(app, width=5, var=self.vars['is_return'], command=self.toggle_return)
         returnCheck.grid(column=column, row=row, **grid_args)
         self.__main_elements.append(returnCheck)
         
         column += 1
-        removeBtn = tk.Button(app, text='x', height=1, command= lambda: remove_gui_patch(self))
+        removeBtn = tk.Button(app, text='x', height=1, command= lambda: clear_gui_patch(self))
         btn_grid_args = GuiPatch.grid_args.copy()
         btn_grid_args['sticky'] = tk.E
         removeBtn.grid(column=column, row=row, **grid_args)
@@ -137,15 +147,20 @@ class GuiPatch():
         return_input_channel_combo.grid(column=column, row=row, **return_grid_args)
         self.__return_elements.append(return_input_channel_combo)
 
+        column += 2
+        output_sync_check = tk.Checkbutton(app, width=5, var=self.vars['output_device_sync'])
+        output_sync_check.grid(column=column, row=row, **grid_args)
+        self.__return_elements.append(output_sync_check)
+
     def destroy(self):
+        for var in self.vars.values():
+            var.trace_remove('write', var.trace)
+
         for element in self.__main_elements:
             element.destroy()
 
         for element in self.__return_elements:
             element.destroy()
-
-        # for var in self.vars.values():
-        #     var.trace_remove('write', var.trace)
 
     def toggle_return(self):
         if self.vars['is_return'].get():
@@ -181,11 +196,11 @@ def add_gui_patch(patch_values=None):
         values[name] = var.get()
     queue.put((id, 'add_patch', values))
 
-def remove_gui_patch(patch):
+def clear_gui_patch(patch, remove=True):
     id = patch.id
     patch.destroy()
-    gui_patches.remove(patch)
     queue.put((id, 'remove_patch', None))
+    if remove: gui_patches.remove(patch)
 
 def save():
     data = []
@@ -199,6 +214,11 @@ def save():
     with open('config.json', 'w') as file:
         json.dump(data, file, indent=4, sort_keys=True)
 
+def clear_patches():
+    for patch in gui_patches:
+        clear_gui_patch(patch, remove=False)
+    gui_patches.clear()
+
 def load():
     with open('config.json') as file:
         global row
@@ -207,23 +227,28 @@ def load():
         
         if not len(data): return
         
-        # for patch in gui_patches:
-        #     remove_gui_patch(patch)
-        
+        clear_patches()
+
         for patch_values in data:
             add_gui_patch(patch_values)
 
-def start(in_devices, out_devices, q):
+def on_window_close():
+    app.destroy()
+    # sys.exit()
+
+def init(in_devices, out_devices, q):
     global input_devices, output_devices, queue
     input_devices = in_devices
     output_devices = out_devices
     queue = q
+    app.protocol("WM_DELETE_WINDOW", on_window_close)
 
     tk.Label(app, text="Input"  ).grid(column=1, row=row, padx=5, sticky=tk.W)
     tk.Label(app, text="Channel").grid(column=2, row=row, padx=5, sticky=tk.W)
     tk.Label(app, text="Channel").grid(column=4, row=row, padx=5, sticky=tk.W)
     tk.Label(app, text="Output" ).grid(column=5, row=row, padx=5, sticky=tk.W)
-    tk.Label(app, text="Return" ).grid(column=6, row=row, padx=5, sticky=tk.W)
+    tk.Label(app, text="Sync"   ).grid(column=6, row=row, padx=5, sticky=tk.W)
+    tk.Label(app, text="Return" ).grid(column=7, row=row, padx=5, sticky=tk.W)
 
     add_btn = tk.Button(app, text="+ Add patch", command=add_gui_patch)
     add_btn.grid(row=99, column=1, padx=(2, 0), pady=(13, 15), sticky=tk.W)
