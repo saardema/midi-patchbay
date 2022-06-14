@@ -7,9 +7,12 @@ from multiprocessing import Queue
 # TODO
 # - Disable return checkbox if one of the device doesn't have an exact i/o match
 # - Refresh device list when one is (dis)connected
+# - Prevent MIDI echo
+# - Note filter option
+# - 
 
 queue = Queue()
-patchbay = PatchBay(show_devices=False)
+patchbay = PatchBay()
 input_devices = [in_port for in_port in patchbay.in_ports]
 output_devices = [out_port for out_port in patchbay.out_ports]
 
@@ -41,13 +44,17 @@ def handle_queue():
     if queue.empty(): return
     gui_update = queue.get(block=False)
     # print(gui_update)
-    id = str(gui_update[0])
-    event = gui_update[1]
+    event = gui_update[0]
+    id = str(gui_update[1])
     value = gui_update[2]
     value = queue_to_patch(event, value)
     patch, return_patch = get_patches_by_id(id)
 
-    if event == 'add_patch':
+    if event == 'print':
+        time.sleep(.001)
+        patchbay.log_patches()
+    
+    elif event == 'add_patch':
         for v in value:
             value[v] = queue_to_patch(v, value[v])
 
@@ -69,7 +76,8 @@ def handle_queue():
             value['return_output_channel'],
             value['output_device_sync']
         )
-    elif patch:
+
+    elif patch and return_patch:
         if event == 'input_device':
             patchbay.set_patch_input_device(patch, value)
             patchbay.set_patch_output_device(return_patch, value)

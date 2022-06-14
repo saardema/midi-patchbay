@@ -8,7 +8,43 @@
         "output_channel": "1",
         "output_device": "Moog Sub 37",
         "output_device_sync": false,
-        "return_input_channel": "All",
+        "return_input_channel": "2",
         "return_output_channel": "8"
+    },
+    {
+        "enabled": true,
+        "input_channel": "11",
+        "input_device": "Elektron Digitakt",
+        "input_device_sync": true,
+        "is_return": true,
+        "output_channel": "Same",
+        "output_device": "TR-8S",
+        "output_device_sync": true,
+        "return_input_channel": "All",
+        "return_output_channel": "Same"
+    },
+    {
+        "enabled": true,
+        "input_channel": "10",
+        "input_device": "Elektron Digitakt",
+        "input_device_sync": true,
+        "is_return": false,
+        "output_channel": "1",
+        "output_device": "minilogue xd SOUND",
+        "output_device_sync": false,
+        "return_input_channel": "All",
+        "return_output_channel": "Same"
+    },
+    {
+        "enabled": false,
+        "input_channel": "All",
+        "input_device": "minilogue xd KBD/KNOB",
+        "input_device_sync": false,
+        "is_return": false,
+        "output_channel": "10",
+        "output_device": "Elektron Digitakt",
+        "output_device_sync": false,
+        "return_input_channel": "All",
+        "return_output_channel": "Same"
     }
 ]

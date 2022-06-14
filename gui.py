@@ -13,7 +13,7 @@ output_devices = []
 queue = None
 
 class GuiPatch():
-    grid_args = dict(padx=5, pady=(15, 0), sticky=tk.W)
+    grid_args = dict(padx=5, pady=(25, 0), sticky=tk.W)
     channel_list = [i+1 for i in range(16)]
     
     def __init__(self, id, values=None):
@@ -59,7 +59,7 @@ class GuiPatch():
             if name == var._name:
                 value = var.get()
                 if value != '':
-                    queue.put((self.id, key, value))
+                    queue.put((key, self.id, value))
                 break
 
     def create_elements(self):
@@ -90,7 +90,7 @@ class GuiPatch():
         h = 8
         w = 80
         canvas = Canvas(app, width=w, height=h)
-        canvas.create_line(1, h/2+3, w, h/2+3, arrow=tk.LAST)
+        canvas.create_line(1, h/2+3, w, h/2+3, arrow=tk.LAST, fill="#555")
         canvas.grid(column=column, row=row, **grid_args)
         self.__main_elements.append(canvas)
 
@@ -126,7 +126,7 @@ class GuiPatch():
         row += 1
         column = 2
         return_grid_args = GuiPatch.grid_args.copy()
-        return_grid_args['pady'] = (5, 0)
+        return_grid_args['pady'] = (2, 0)
 
         return_output_channel_combo = ttk.Combobox(app, textvariable=self.vars['return_output_channel'], state='readonly', width=5)
         return_output_channel_combo['values'] = ['Same'] + GuiPatch.channel_list
@@ -137,7 +137,7 @@ class GuiPatch():
         h = 8
         w = 80
         canvas = Canvas(app, width=w, height=h)
-        canvas.create_line(1, h/2+3, w, h/2+3, arrow=tk.FIRST)
+        canvas.create_line(1, h/2+3, w, h/2+3, arrow=tk.FIRST, fill="#555")
         canvas.grid(column=column, row=row, **return_grid_args)
         self.__return_elements.append(canvas)
 
@@ -149,7 +149,7 @@ class GuiPatch():
 
         column += 2
         output_sync_check = tk.Checkbutton(app, width=5, var=self.vars['output_device_sync'])
-        output_sync_check.grid(column=column, row=row, **grid_args)
+        output_sync_check.grid(column=column, row=row, **return_grid_args)
         self.__return_elements.append(output_sync_check)
 
     def destroy(self):
@@ -178,13 +178,15 @@ def get_new_patch_id():
     
     return highest_id + 1
 
-def print_gui_patches():
+def print_patches():
+    queue.put(('print', None, None))
     l = str(len(gui_patches))
     print('---' + l + '-GUI PATCHES----')
     for patch in gui_patches:
-        o = str(patch.id) + ' '
-        for value in patch.vars.values():
-            o += str(value.get()) + ' '
+        o = f"id: {patch.id} | "
+        for name, var in patch.vars.items():
+            val = var.get()
+            o += f"{name}: {val} | "
         print(o)
 
 def add_gui_patch(patch_values=None):
@@ -194,12 +196,12 @@ def add_gui_patch(patch_values=None):
     values = {}
     for name, var in new_patch.vars.items():
         values[name] = var.get()
-    queue.put((id, 'add_patch', values))
+    queue.put(('add_patch', id, values))
 
 def clear_gui_patch(patch, remove=True):
     id = patch.id
     patch.destroy()
-    queue.put((id, 'remove_patch', None))
+    queue.put(('remove_patch', id, None))
     if remove: gui_patches.remove(patch)
 
 def save():
@@ -256,7 +258,7 @@ def init(in_devices, out_devices, q):
     save_btn.grid(row=99, column=2, padx=(2, 0), pady=(13, 15), sticky=tk.W)
     load_btn = tk.Button(app, text="Load", command=load)
     load_btn.grid(row=99, column=3, padx=(2, 0), pady=(13, 15), sticky=tk.W)
-    print_btn = tk.Button(app, text="Print", command=print_gui_patches)
+    print_btn = tk.Button(app, text="Print", command=print_patches)
     print_btn.grid(row=99, column=4, padx=(2, 0), pady=(13, 15), sticky=tk.W)
     # add_gui_patch()
     load()
